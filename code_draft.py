@@ -5,20 +5,27 @@
 # Mingming Zhang   400349051
 
 import scipy.io as sio
-
+import sys
 import matplotlib.pyplot as plt
 import numpy as np
 import sklearn.discriminant_analysis
 from sklearn import svm
-# Main functions
+
 from function_plot import Load_mat_single
 from function_plot import mat_to_array
 from function_plot import plot_confusion_matrix
 from function_plot import train_test
 import time
 import pandas as pd
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.ensemble import AdaBoostClassifier
+from sklearn.model_selection import cross_validate
+from sklearn.metrics import roc_curve, auc
+from sklearn.metrics import roc_auc_score
 
 
+np.random.seed(0)
+random_state = np.random.RandomState(0)
 
 """Load Data"""
 # Path
@@ -36,13 +43,123 @@ show_time = True
 """Construct the data"""
 # Merge the data
 # constuct the data
-X = np.concatenate((good_data,bad_data))
+good_data_re = good_data.reshape((1000,-1))
+bad_data_re = bad_data.reshape((1000,-1))
+
+X = np.concatenate((good_data_re,bad_data_re))
 # Create the label
-n_sample = good_data.shape[0]
-n_feature  = good_data.shape[1]
+n_sample = good_data_re.shape[0]
+n_feature  = good_data_re.shape[1]
 
 Y = np.zeros(n_sample)
 Y = np.concatenate((Y, np.ones(n_sample)))
+
+"""Category the data"""
+# Seperate 75% train set and 25% test set
+train_index = np.arange(0, n_sample*0.75).astype(int).tolist() + \
+    np.arange(n_sample, n_sample+n_sample*0.75).astype(int).tolist()
+test_index = np.arange(n_sample*0.75, n_sample).astype(int).tolist() + \
+    np.arange(n_sample+n_sample*0.75, n_sample+n_sample).astype(int).tolist()
+#  data for training and testing
+X_train = X[train_index, :]
+X_test = X[test_index, :]
+# Label the train set and the test set
+Y_train = Y[train_index]
+Y_test = Y[test_index]
+
+
+
+
+# -------------- Perform cross-validation--------------
+
+# define metrics
+
+scoring_list = {'accuracy': 'accuracy'}
+
+
+# Support vector machines
+clf_svm = svm.SVC(cache_size=500)
+svm_results = cross_validate(clf_svm, X_train, Y_train, cv=10, scoring =scoring_list)
+
+
+
+
+# K-Nearest Neighbours
+
+neigh_accuracy = []
+
+neigh_fit_time = []
+neigh_eval_time = []
+neigh = []
+
+# find optimal k values
+estm_k_neigh =[5,10,15,20]
+for i in estm_k_neigh:
+	
+	neigh.append( KNeighborsClassifier(n_neighbors=i))
+	neigh_results = cross_validate(neigh[estm_k_neigh.index(i)], X_train, Y_train, cv=10, scoring =scoring_list)
+	neigh_accuracy.append( sum(neigh_results['test_accuracy'])/len(neigh_results['test_accuracy']))
+
+neigh_accuracy_max = max(neigh_accuracy)
+
+max_index = neigh_accuracy.index(neigh_accuracy_max)
+
+
+# -------------- Confusion matrix and time --------------
+
+"""SVM"""
+
+clf_svm = svm.SVC()
+
+error_SVM, prediction_svm, train_time, test_time = train_test(
+    X_train, Y_train, X_test, Y_test,  clf_svm, show_time)
+
+
+plot_confusion_matrix(Y_test, prediction_svm, clf_svm )
+
+
+"""K Nearest Neighbors"""
+
+clf_KNN = KNeighborsClassifier(n_neighbors=estm_k_neigh[max_index])
+
+error_KNN, prediction_KNN, train_time, test_time = train_test(
+    X_train, Y_train, X_test, Y_test,  clf_KNN, show_time)
+
+
+plot_confusion_matrix(Y_test, prediction_KNN, clf_KNN)
+
+""" Adaboost"""
+clf_ab = AdaBoostClassifier(n_estimators=100, random_state=0)
+
+error_ab, prediction_ab, train_time, test_time = train_test(
+    X_train, Y_train, X_test, Y_test,  clf_ab, show_time)
+
+
+plot_confusion_matrix(Y_test, prediction_ab, clf_ab)
+
+
+# -------------- ROC Curve--------------
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+sys.exit()
 
 """
 Comparison 1
