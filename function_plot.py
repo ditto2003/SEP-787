@@ -2,7 +2,7 @@
 import scipy.io as sio
 import matplotlib.pyplot as plt
 import numpy as np
-from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay, roc_curve, auc
 import time
 
 def Load_mat_single(data_path):
@@ -36,35 +36,55 @@ def plot_confusion_matrix(Y_test, prediction, clf):
 def train_test(X_train,Y_train, X_test,Y_test,clf, show_time =False):
     """Train the data with AI model and display the execution time"""
     # Enable time flag
-    if show_time == True:
-        print("The experiment is %s \n" % (clf))
-        print("The shape of X_train is {} \n".format(X_train.shape))
-        
-        #start training classifier
-        start_time = time.time()
-        clf.fit(X_train,Y_train)
-        train_time = time.time()-start_time
-        print("The train time is --- %.8f seconds ---" % (train_time))
-        
-        #testing the fitted model
-        start_time_test = time.time()
-        # Predict the test set
-        prediction = clf.predict(X_test)
-        test_time = time.time()-start_time_test
-        print("The test time is --- %.8f seconds ---" % (test_time))
-        
-        #compute error
-        error = sum(prediction != Y_test)
+    print("The experiment is %s \n" % (clf))
+    print("The shape of X_train is {} \n".format(X_train.shape))
+    
+    #start training classifier
+    start_time = time.time()
+    clf.fit(X_train,Y_train)
+    train_time = time.time()-start_time
+    
+    #testing the fitted model
+    start_time_test = time.time()
+    # Predict the test set
+    prediction = clf.predict(X_test)
+    test_time = time.time()-start_time_test
 
-        return error, prediction, train_time, test_time
-        
-    else:           
-        clf.fit(X_train,Y_train)
-        # Time start
-        start_time_test = time.time()
-        # Predict the test set
-        prediction = clf.predict(X_test)
-        # Statistical ERROR
-        error = sum(prediction != Y_test)
-        
-        return error, prediction
+    if show_time == True:
+        print("The train time is --- %.8f seconds ---" % (train_time))
+        print("The test time is --- %.8f seconds ---" % (test_time))
+    
+    #compute error
+    error = sum(prediction != Y_test)
+
+    return error, prediction, train_time, test_time
+
+def roc(Y_test, prediction, clf=str):
+    fpr, tpr, _ = roc_curve(Y_test, prediction)
+    roc_auc = auc(fpr, tpr)
+
+    plt.title(f"ROC: {clf}")
+    plt.plot(fpr, tpr, 'b', label=f'AUC={roc_auc * 100}')
+    plt.legend(loc='lower right')
+    plt.plot([0, 1], [0, 1], 'r--')
+    plt.ylabel('TPR')
+    plt.xlabel('FPR')
+    plt.show()
+
+def roc_comp(Y_test, prediction, clf=str):
+    for i in range(len(clf)):
+        fpr, tpr, _ = roc_curve(Y_test, prediction[i])
+        roc_auc = auc(fpr, tpr)
+
+        plt.plot(fpr, tpr, 'b', label=f'AUC={roc_auc * 100}')
+
+    plt.legend(loc='lower right')
+    plt.plot([0, 1], [0, 1], 'r--')
+    plt.xlim([0.0, 1.0])
+    plt.ylim([0.0, 1.05])
+    plt.xlabel('Specificity(False Positive Rate)')
+    plt.ylabel('Sensitivity(True Positive Rate)')
+    plt.title('Receiver Operating Characteristic')
+
+    plt.ioff()
+    plt.show()

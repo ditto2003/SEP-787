@@ -4,7 +4,7 @@
 # Xiaoyu Jiang     400057533
 # Mingming Zhang   400349051
 
-import scipy.io as sio
+from sklearn.preprocessing import StandardScaler
 import sys
 import matplotlib.pyplot as plt
 import numpy as np
@@ -15,13 +15,14 @@ from function_plot import Load_mat_single
 from function_plot import mat_to_array
 from function_plot import plot_confusion_matrix
 from function_plot import train_test
-import time
+from function_plot import roc
+from function_plot import roc_comp
+
 import pandas as pd
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.ensemble import AdaBoostClassifier
-from sklearn.model_selection import cross_validate
-from sklearn.metrics import roc_curve, auc
-from sklearn.metrics import roc_auc_score
+from sklearn.model_selection import cross_validate, cross_val_score
+from sklearn import model_selection
 
 
 np.random.seed(0)
@@ -33,10 +34,12 @@ path_good = 'data//baseline_20220915_sv.mat'
 path_bad= 'data//fault7_20220915_sv.mat'
 # Load the .mat files
 mat_contents_good = Load_mat_single(path_good)
-good_data = mat_to_array(mat_contents_good)
-# Convert to Numpy array
 mat_contents_bad = Load_mat_single(path_bad)
+
+# Convert to Numpy array
+good_data = mat_to_array(mat_contents_good)
 bad_data = mat_to_array(mat_contents_bad)
+
 # Debug flag about time
 show_time = True
 
@@ -46,29 +49,31 @@ show_time = True
 good_data_re = good_data.reshape((1000,-1))
 bad_data_re = bad_data.reshape((1000,-1))
 
-X = np.concatenate((good_data_re,bad_data_re))
-# Create the label
-n_sample = good_data_re.shape[0]
-n_feature  = good_data_re.shape[1]
+X_raw = np.concatenate((good_data_re,bad_data_re))
 
-Y = np.zeros(n_sample)
-Y = np.concatenate((Y, np.ones(n_sample)))
+# Normalize the data
+scaler = StandardScaler()
+X = scaler.fit_transform(X_raw)
+
+# Create the label
+Y = np.zeros(good_data_re.shape[0])
+Y = np.concatenate((Y, np.ones(bad_data_re.shape[0])))
 
 """Category the data"""
+# # Seperate 75% train set and 25% test set
+# train_index = np.arange(0, n_sample*0.75).astype(int).tolist() + \
+#     np.arange(n_sample, n_sample+n_sample*0.75).astype(int).tolist()
+# test_index = np.arange(n_sample*0.75, n_sample).astype(int).tolist() + \
+#     np.arange(n_sample+n_sample*0.75, n_sample+n_sample).astype(int).tolist()
+# #  data for training and testing
+# X_train = X[train_index, :]
+# X_test = X[test_index, :]
+# # Label the train set and the test set
+# Y_train = Y[train_index]
+# Y_test = Y[test_index]
+
 # Seperate 75% train set and 25% test set
-train_index = np.arange(0, n_sample*0.75).astype(int).tolist() + \
-    np.arange(n_sample, n_sample+n_sample*0.75).astype(int).tolist()
-test_index = np.arange(n_sample*0.75, n_sample).astype(int).tolist() + \
-    np.arange(n_sample+n_sample*0.75, n_sample+n_sample).astype(int).tolist()
-#  data for training and testing
-X_train = X[train_index, :]
-X_test = X[test_index, :]
-# Label the train set and the test set
-Y_train = Y[train_index]
-Y_test = Y[test_index]
-
-
-
+X_train, X_test, Y_train, Y_test = model_selection.train_test_split(X, Y, test_size=0.25, random_state=1)
 
 # -------------- Perform cross-validation--------------
 
@@ -93,12 +98,14 @@ neigh_eval_time = []
 neigh = []
 
 # find optimal k values
-estm_k_neigh =[5,10,15,20]
-for i in estm_k_neigh:
-	
-	neigh.append( KNeighborsClassifier(n_neighbors=i))
-	neigh_results = cross_validate(neigh[estm_k_neigh.index(i)], X_train, Y_train, cv=10, scoring =scoring_list)
-	neigh_accuracy.append( sum(neigh_results['test_accuracy'])/len(neigh_results['test_accuracy']))
+# estm_k_neigh =[5,10,15,20]
+estm_k_neigh = 20
+for i in range(1, estm_k_neigh):
+	knn =  KNeighborsClassifier(n_neighbors=i)
+
+	neigh.append(knn)
+	cv_scores = cross_val_score(knn, X_train, Y_train, cv=10)
+	neigh_accuracy.append(cv_scores.mean())
 
 neigh_accuracy_max = max(neigh_accuracy)
 
@@ -117,16 +124,19 @@ error_SVM, prediction_svm, train_time, test_time = train_test(
 
 plot_confusion_matrix(Y_test, prediction_svm, clf_svm )
 
+roc(Y_test, prediction_svm, "SVM")
 
 """K Nearest Neighbors"""
 
-clf_KNN = KNeighborsClassifier(n_neighbors=estm_k_neigh[max_index])
+clf_KNN = KNeighborsClassifier(n_neighbors=max_index)
 
 error_KNN, prediction_KNN, train_time, test_time = train_test(
     X_train, Y_train, X_test, Y_test,  clf_KNN, show_time)
 
 
 plot_confusion_matrix(Y_test, prediction_KNN, clf_KNN)
+
+roc(Y_test, prediction_KNN, "KNN")
 
 """ Adaboost"""
 clf_ab = AdaBoostClassifier(n_estimators=100, random_state=0)
@@ -137,12 +147,13 @@ error_ab, prediction_ab, train_time, test_time = train_test(
 
 plot_confusion_matrix(Y_test, prediction_ab, clf_ab)
 
-
+roc(Y_test, prediction_ab, "AdaBoost")
 # -------------- ROC Curve--------------
 
+clf_label = ["SVM", "KNN", "AdaBoost"]
+predict = [prediction_svm, prediction_KNN, prediction_ab]
 
-
-
+roc_comp(Y_test, predict, clf_label)
 
 
 
