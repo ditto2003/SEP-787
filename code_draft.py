@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import sklearn.discriminant_analysis
 from sklearn import svm
+import pandas as pd
 
 from function_plot import Load_mat_single
 from function_plot import mat_to_array
@@ -49,15 +50,39 @@ show_time = True
 good_data_re = good_data.reshape((1000,-1))
 bad_data_re = bad_data.reshape((1000,-1))
 
-X_raw = np.concatenate((good_data_re,bad_data_re))
+# convert to frequency domain based on the time domain data
+good_data_f = np.fft.fft(good_data_re)
+bad_data_f = np.fft.fft(bad_data_re)
+# calc log based on the real value
+good_data_f_log = np.log(np.abs(good_data_f.real))
+bad_data_f_log = np.log(np.abs(bad_data_f.real))
+# merge the data
+X_raw = np.concatenate((good_data_f_log, bad_data_f_log))
+
+# Create the label
+y = np.zeros(good_data_f_log.shape[0])
+y = np.concatenate((y, np.ones(bad_data_f_log.shape[0])))
+y = y.reshape(y.shape[0], 1)
+# merge the dataset
+dataset = np.concatenate((X_raw, y), axis=1)
+# print(dataset.shape)
+
+# mark the inf value
+df = pd.DataFrame(dataset)
+df.replace([np.inf, -np.inf], np.nan, inplace=True)
+# delete inf value
+X_rep_drop = df.dropna()
+# print(X_rep_drop.shape)
+# re-construct the x & y
+X_rep_drop = X_rep_drop.to_numpy()
+X = X_rep_drop[:, 0:8]
+Y = X_rep_drop[:, -1]
 
 # Normalize the data
 scaler = StandardScaler()
-X = scaler.fit_transform(X_raw)
+X = scaler.fit_transform(X)
 
-# Create the label
-Y = np.zeros(good_data_re.shape[0])
-Y = np.concatenate((Y, np.ones(bad_data_re.shape[0])))
+
 
 """Category the data"""
 # # Seperate 75% train set and 25% test set
