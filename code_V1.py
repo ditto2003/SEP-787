@@ -76,18 +76,31 @@ X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.25, random
 
 # find best gamma for Support vector machines
 
-# gamma_range = np.logspace(-3, 3, 20)
-# param_grid = dict(gamma=gamma_range)
-# cv = StratifiedShuffleSplit(
-# 	n_splits=5, test_size=0.2, random_state=random_state)
-# grid = GridSearchCV(svm.SVC(cache_size=500), param_grid=param_grid, cv=cv)
-# grid.fit(X_train, Y_train)
+# svm_accuracy = []
 
-# best_gamma = grid.best_params_['gamma']
-# test_score = grid.cv_results_['mean_test_score']
+# svm_clf = []
+# gamma_candidate = []
+
+# gamma_range = np.logspace(-3, 3, 20)
+# for i in gamma_range:
+
+#     svm_select = svm.SVC(cache_size=500, gamma=i)
+
+#     svm_clf.append(svm_select)
+#     cv_scores = cross_val_score(svm_select, X_train, Y_train, cv=5)
+#     svm_accuracy.append(cv_scores.mean())
+
+
+# svm_accuracy_max = max(svm_accuracy)
+
+# max_index = svm_accuracy.index(svm_accuracy_max)
+# best_gamma = gamma_range[max_index]
+
+# print(gamma_range)
+# print(svm_accuracy)
 
 # plt.figure()
-# plt.plot(gamma_range,test_score)
+# plt.plot(gamma_range, svm_accuracy)
 # plt.xlabel('gamma')
 # plt.ylabel('Accuracy')
 # plt.title('Cross validation for SVM')
@@ -130,9 +143,9 @@ plt.xticks(k_candidate)
 # -------------- Confusion matrix and time --------------
 
 """SVM"""
+best_gamma = 2.63665090e+01
+clf_svm = svm.SVC(cache_size=500, gamma = best_gamma)
 
-clf_svm = svm.SVC(cache_size=500,)
-#  gamma=best_gamma
 error_SVM, prediction_svm, train_time, test_time = train_test(
     X_train, Y_train, X_test, Y_test,  clf_svm, show_time)
 
@@ -154,7 +167,7 @@ plot_confusion_matrix(Y_test, prediction_KNN, clf_KNN)
 
 
 """ Adaboost"""
-clf_ab = AdaBoostClassifier(n_estimators=100, random_state=0)
+clf_ab = AdaBoostClassifier(n_estimators=100)
 
 error_ab, prediction_ab, train_time, test_time = train_test(
     X_train, Y_train, X_test, Y_test,  clf_ab, show_time)
