@@ -1,14 +1,11 @@
 """Classifiers comparision"""
-# SEP 786 Project report
+# SEP 787 Project report
 # Yu Zhang         400429707
 # Xiaoyu Jiang     400057533
 # Mingming Zhang   400349051
 
-from sklearn.preprocessing import StandardScaler
-import sys
 import matplotlib.pyplot as plt
 import numpy as np
-import sklearn.discriminant_analysis
 from sklearn import svm
 import pandas as pd
 
@@ -16,19 +13,11 @@ from function_plot import Load_mat_single
 from function_plot import mat_to_array
 from function_plot import plot_confusion_matrix
 from function_plot import train_test
-from function_plot import roc
-from function_plot import roc_comp
 
-import pandas as pd
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.ensemble import AdaBoostClassifier
 from sklearn.model_selection import cross_validate, cross_val_score
-from sklearn import model_selection
-from sklearn.model_selection import cross_validate
 from sklearn.metrics import roc_curve, auc
-from sklearn.metrics import roc_auc_score
-from sklearn.model_selection import StratifiedShuffleSplit
-from sklearn.model_selection import GridSearchCV
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import RocCurveDisplay
 from sklearn.metrics import roc_curve
